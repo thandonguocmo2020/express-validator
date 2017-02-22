@@ -41,35 +41,39 @@ var util = require('util'),
     app = express();
 
 app.use(bodyParser.json());
-app.use(expressValidator([options])); // this line must be immediately after any of the bodyParser middlewares!
+app.use(expressValidator([options])); // Dòng này phải ngay lập tức sau  middlewares bodyParser!
 
 app.post('/:urlparam', function(req, res) {
 
   // VALIDATION
-  // checkBody only checks req.body; none of the other req parameters
-  // Similarly checkParams only checks in req.params (URL params) and
-  // checkQuery only checks req.query (GET params).
-  req.checkBody('postparam', 'Invalid postparam').notEmpty().isInt();
-  req.checkParams('urlparam', 'Invalid urlparam').isAlpha();
-  req.checkQuery('getparam', 'Invalid getparam').isInt();
+  // checkBody chỉ kiểm tra req.body; không có thông số req khác
+  // Similarly checkParams chỉ kiểm tra các method http get req.params (URL params) and
+  // checkQuery chỉ kiểm tra req.query (GET params).
+  
+  req.checkBody('postparam', 'postparam không hợp lệ').notEmpty().isInt();
+  req.checkParams('urlparam', 'urlparam không hợp lệ').isAlpha();
+  req.checkQuery('getparam', 'getparam không hợp lệ').isInt();
 
-  // OR assert can be used to check on all 3 types of params.
-  // req.assert('postparam', 'Invalid postparam').notEmpty().isInt();
-  // req.assert('urlparam', 'Invalid urlparam').isAlpha();
-  // req.assert('getparam', 'Invalid getparam').isInt();
+  // .notEmpty().isInt() là các method bạn sẽ cấu hình để kiểm tra ==> return kiểu boolean
+  
+  // OR assert có thể được sử dụng để kiểm tra trên tất cả 3 loại params.
+  // req.assert('postparam', 'postparam không hợp lệ').notEmpty().isInt();
+  // req.assert('urlparam', 'urlparam không hợp lệ').isAlpha();
+  // req.assert('getparam', 'getparam không hợp lệ').isInt();
 
   // SANITIZATION
-  // as with validation these will only validate the corresponding
-  // request object
+  // as with validation này sẽ chỉ xác nhận tương ứng với kết quả
+  // request object lấy kết quả 
   req.sanitizeBody('postparam').toBoolean();
   req.sanitizeParams('urlparam').toBoolean();
   req.sanitizeQuery('getparam').toBoolean();
 
-  // OR find the relevent param in all areas
+  // OR find các param có liên quan trong mọi lĩnh vực
   req.sanitize('postparam').toBoolean();
 
-  // Alternatively use `var result = yield req.getValidationResult();`
-  // when using generators e.g. with co-express
+  // Hoặc sử dụng `var result = yield req.getValidationResult();`
+  // khi sử dụng generators e.g. với express
+  // lấy kết quả  và hiển thị lỗi
   req.getValidationResult().then(function(result) {
     if (!result.isEmpty()) {
       res.status(400).send('There have been validation errors: ' + util.inspect(result.array()));
@@ -86,35 +90,38 @@ app.post('/:urlparam', function(req, res) {
 app.listen(8888);
 ```
 
-Which will result in:
+// từ url tương ứng mà kết quả sẽ dẫn đến.
 
 ```
 $ curl -d 'postparam=1' http://localhost:8888/test?getparam=1
 {"urlparam":"test","getparam":"1","postparam":true}
 
 $ curl -d 'postparam=1' http://localhost:8888/t1est?getparam=1
-There have been validation errors: [
-  { param: 'urlparam', msg: 'Invalid urlparam', value: 't1est' } ]
+Đã có lỗi xác nhận: [
+  { param: 'urlparam', msg: 'urlparam không hợp lệ', value: 't1est' } ]
 
 $ curl -d 'postparam=1' http://localhost:8888/t1est?getparam=1ab
 There have been validation errors: [
-  { param: 'getparam', msg: 'Invalid getparam', value: '1ab' },
-  { param: 'urlparam', msg: 'Invalid urlparam', value: 't1est' } ]
+  { param: 'getparam', msg: 'getparam không hợp lệ', value: '1ab' },
+  { param: 'urlparam', msg: 'getparam không hợp lệ', value: 't1est' } ]
 
 $ curl http://localhost:8888/test?getparam=1&postparam=1
 There have been validation errors: [
-  { param: 'postparam', msg: 'Invalid postparam', value: undefined} ]
+  { param: 'postparam', msg: 'postparam không hợp lệ', value: undefined} ]
 ```
 
 ## Middleware Options
 #### `errorFormatter`
 _function(param,msg,value)_
 
-The `errorFormatter` option can be used to specify a function that must build the error objects used in the validation result returned by `req.getValidationResult()`.<br>
-It should return an `Object` that has `param`, `msg`, and `value` keys defined.
+The `errorFormatter` tùy chọn có thể được sử dụng để chỉ định một chức năng mà xây dựng các đối tượng lỗi được sử dụng trong các kết quả xác nhận trở lại bởi `req.getValidationResult()`.<br>
+Nó sẽ trả về một `Object` cái đó có `param`, `msg`, và  `value` keys được định nghĩa.
+
+Nó là một customer lỗi mà sẽ trả lại các thông báo lỗi.
 
 ```javascript
-// In this example, the formParam value is going to get morphed into form body format useful for printing.
+//  Trong ví dụ này, giá trị formParam sẽ được biến thành dạng body  hữu ích cho việc hiển thị. 
+
 app.use(expressValidator({
   errorFormatter: function(param, msg, value) {
       var namespace = param.split('.')
@@ -136,10 +143,18 @@ app.use(expressValidator({
 ####`customValidators`
 _{ "validatorName": function(value, [additional arguments]), ... }_
 
+// validatorName == tên method ví dụ isArray()
+// value là mặc định  
+// có thể add thêm các đối số để so sánh additional arguments
+ 
+Tùy chỉnh một phương pháp để định nghĩa lỗi
 
-The `customValidators` option can be used to add additional validation methods as needed. This option should be an `Object` defining the validator names and associated validation functions.
+Các `customValidators` tùy chọn có thể được sử dụng để thêm phương pháp validator của bạn.
 
-Define your custom validators:
+Tùy chọn này nên là một `Object` định nghĩa tên của validator và các logic liên quan. 
+
+
+Xác định custom validators của bạn :
 
 ```javascript
 app.use(expressValidator({
@@ -153,7 +168,8 @@ app.use(expressValidator({
  }
 }));
 ```
-Use them with their validator name:
+
+Sử dụng chúng với tên method validator name:
 ```javascript
 req.checkBody('users', 'Users must be an array').isArray();
 req.checkQuery('time', 'Time must be an integer great than or equal to 5').isInt().gte(5)
@@ -161,9 +177,13 @@ req.checkQuery('time', 'Time must be an integer great than or equal to 5').isInt
 ####`customSanitizers`
 _{ "sanitizerName": function(value, [additional arguments]), ... }_
 
-The `customSanitizers` option can be used to add additional sanitizers methods as needed. This option should be an `Object` defining the sanitizer names and associated functions.
+The `customSanitizers` tùy chọn này có thể được sử dụng để thay thế giá trị đưa vào. 
 
-Define your custom sanitizers:
+Nó là một object và có tên sanitizer name mà bạn đặt khi bạn sử dụng nó sẽ chuyển giá trị ban đầu sang một new value mới.
+
+ Cái này là để làm sạch dữ liệu . Ví dụ loại bỏ html code hay javascript code trong input 
+
+Định nghĩa method của bạn custom sanitizers:
 
 ```javascript
 app.use(expressValidator({
@@ -175,7 +195,7 @@ app.use(expressValidator({
  }
 }));
 ```
-Use them with their sanitizer name:
+Sau đó bạn có thể sử dụng với tên sanitizer name:
 ```javascript
 req.sanitize('address').toSanitizeSomehow();
 ```
@@ -185,66 +205,71 @@ req.sanitize('address').toSanitizeSomehow();
 #### req.check();
 ```javascript
    req.check('testparam', 'Error Message').notEmpty().isInt();
-   req.check('testparam.child', 'Error Message').isInt(); // find nested params
+   req.check('testparam.child', 'Error Message').isInt(); // Tìm params theo cấu trúc /params/params lồng nhau
    req.check(['testparam', 'child'], 'Error Message').isInt(); // find nested params
 ```
 
-Starts the validation of the specifed parameter, will look for the parameter in `req` in the order `params`, `query`, `body`, then validate, you can use 'dot-notation' or an array to access nested values.
+Bắt đầu xác nhận của tham số. Nó sẽ tìm kiếm các params theo thứ tự `params` => http get.
+`query` ==> http get query
+`body` ==> http post method
 
-If a validator takes in params, you would call it like `req.assert('reqParam').contains('thisString');`.
+Sau đó nó sẽ xác nhận validate. Bạn cần sử dụng 
+ 
+Starts the validation of the specife parameter, will look for the parameter in `req` in the order `params`, `query`, `body`, then validate, Bạn cần sử dụng các kí hiệu "." hoặc một mảng array để truy cập các giá trị lồng nhau. 
 
-Validators are appended and can be chained. See [chriso/validator.js](https://github.com/chriso/validator.js) for available validators, or [add your own](#customvalidators).
+Nếu 1 validator nhận được trong params, bạn sẽ gọi nó như thế `req.assert('reqParam').contains('thisString');`.
+
+Validators được  thêm vào và  mối quan hệ. Xem [chriso/validator.js](https://github.com/chriso/validator.js) có sẵn " available validators" cho trình xác nhận validators, hoặc [add thêm vào ](#customvalidators).
 
 #### req.assert();
-Alias for [req.check()](#reqcheck).
+Sử dụng giống như  [req.check()](#reqcheck).
 
 #### req.validate();
-Alias for [req.check()](#reqcheck).
+Sử dụng giống như  [req.check()](#reqcheck).
 
 #### req.checkBody();
-Same as [req.check()](#reqcheck), but only looks in `req.body`.
+Sử dụng giống như  [req.check()](#reqcheck), Chỉ áp dụng với `req.body`.
 
 #### req.checkQuery();
-Same as [req.check()](#reqcheck), but only looks in `req.query`.
+Sử dụng giống như [req.check()](#reqcheck),  Chỉ áp dụng với  `req.query`.
 
 #### req.checkParams();
-Same as [req.check()](#reqcheck), but only looks in `req.params`.
+Sử dụng giống như [req.check()](#reqcheck), Chỉ áp dụng với `req.params`.
 
 #### req.checkHeaders();
-Only checks `req.headers`. This method is not covered by the general `req.check()`.
+Sử dụng giống như `req.headers`. Phương pháp này không được đảm bảo bởi`req.check()`.
 
 #### req.checkCookies();
-Only checks `req.cookies`. This method is not covered by the general `req.check()`.
+chỉ kiểm tra `req.cookies`. Phương pháp này không được đảm bảo `req.check()`.
 
 ## Validation by Schema
 
-Alternatively you can define all your validations at once using a simple schema.
-Schema validation will be used if you pass an object to any of the validator methods.
+Bạn có thể check nhiều thứ cùng 1 lúc sử dụng sơ đồ đơn giản. 
 
-You may pass per-validator error messages with the `errorMessage` key.
-Validator options may be passed via `options` key as an array when various values are needed,
-or as a single non-null value otherwise.
+Bạn có thể thông qua tin nhắn mỗi validator error với key `errorMessage` .
+optional Validator có thể được chuyển qua key `options` như là một mảng khi các value khác nhau là required, 
+hoặc là một giá trị null .
 
 ```javascript
 req.checkBody({
  'email': {
     optional: {
-      options: { checkFalsy: true } // or: [{ checkFalsy: true }]
+      options: { checkFalsy: true } // hoặc : [{ checkFalsy: true }]
     },
     isEmail: {
-      errorMessage: 'Invalid Email'
+      errorMessage: 'Email không hợp lệ'
     }
   },
   'password': {
     notEmpty: true,
     matches: {
-      options: ['example', 'i'] // pass options to the validator with the options property as an array
-      // options: [/example/i] // matches also accepts the full expression in the first parameter
+      options: ['example', 'i'] // tùy chọn cho các validator với các tùy chọn thuộc tính giống như mảng array
+      // options: [/example/i] // Giống như mảng tham số với các đối số url
     },
-    errorMessage: 'Invalid Password' // Error message for the parameter
+    errorMessage: 'Mật khẩu không hợp lệ' // Thông báo lỗi cho tham số
   },
   'name.first': { //
-    optional: true, // won't validate if field is empty
+    optional: true, // Sẽ không xác nhận nếu trường có giá trị là rỗng.
     isLength: {
       options: [{ min: 2, max: 10 }],
       errorMessage: 'Must be between 2 and 10 chars long' // Error message for the validator, takes precedent over parameter message
@@ -254,7 +279,9 @@ req.checkBody({
 });
 ```
 
-You can also define a specific location to validate against in the schema by adding `in` parameter as shown below:
+Bạn cũng có thể xác định vị trí cụ thể thông qua add `in` thông số như hình dưới đây. ==> email trong query
+
+
 
 ```javascript
 req.check({
@@ -267,8 +294,7 @@ req.check({
   }
 });
 ```
-
-Please remember that the `in` attribute will have always highest priority. This mean if you use `in: 'query'` then checkQuery() will be called inside even if you do `checkParams()` or `checkBody()`. For example, all of these calls will check query params for email param:
+Trong các thuộc tính in luôn được ưu tiên cao nhất. phương pháp này bạn sử dụng trong `in:'query'` vì thế checkQuery() sẽ gọi phía trong. thâm chí bạn đang dùng `checkParams()` or `checkBody()`. Xem in có chứa những gì xem phía dưới có giải thích.
 
 
 ```javascript
@@ -283,7 +309,7 @@ var schema = {
   'password': {
     notEmpty: true,
     matches: {
-      options: ['example', 'i'] // pass options to the validator with the options property as an array
+      options: ['example', 'i'] // xác nhận với các tài sản trong cùng 1 mảng
       // options: [/example/i] // matches also accepts the full expression in the first parameter
     },
     errorMessage: 'Invalid Password' // Error message for the parameter
@@ -296,13 +322,15 @@ req.checkBody(schema);    // will check 'password' in body but 'email' in query 
 req.checkParams(schema);  // will check 'password' in path params but 'email' in query params
 req.checkHeaders(schema);  // will check 'password' in headers but 'email' in query params
 ```
+Các giá trị hiện thời được hỗ trợ  `'body', 'params', 'query', 'headers'`. Nếu bạn đưa vào một in vị trí ko được hỗ trợ quá trình cho tham số hiện tại được bỏ qua.
 
-Currently supported location are `'body', 'params', 'query', 'headers'`. If you provide a location parameter that is not supported, the validation process for current parameter will be skipped.
 
 ## Validation result
 
+Kết quả của validator. 
+
 ### Result API
-The method `req.getValidationResult()` returns a Promise which resolves to a result object.
+Phương pháp  `req.getValidationResult()` trả về một  Promise với resolves tới một object kết quả.
 
 ```js
 req.assert('email', 'required').notEmpty();
@@ -314,24 +342,24 @@ req.getValidationResult().then(function(result) {
 });
 ```
 
-The API for the result object is the following:
+Các API cho các đối tượng "result" kết quả là :
+
 
 #### `result.isEmpty()`
-Returns a boolean determining whether there were errors or not.
+Trả về một kiểu boolean xác định liệu có lỗi hay không.
 
 #### `result.useFirstErrorOnly()`
-Sets the `firstErrorOnly` flag of this result object, which modifies the way
-other methods like `result.array()` and `result.mapped()` work.<br>
+Thiết lập các `firstErrorOnly` của result object, mà sửa đổi các `result.array()` và `result.mapped()` làm việc.<br>
 
-This method is chainable, so the following is OK:
+Phương pháp này là thể kết nối, vì vậy sau đây là OK:
 
 ```js
 result.useFirstErrorOnly().array();
 ```
 
 #### `result.array()`
-Returns an array of errors.<br>
-All errors for all validated parameters will be included, unless you specify that you want only the first error of each param by invoking `result.useFirstErrorOnly()`.
+Trả về một mảng của các lỗi. <br>
+Tất cả các lỗi cho tất cả các tham số hợp lệ sẽ được bao gồm, trừ khi bạn chỉ định rằng bạn muốn chỉ có lỗi đầu tiên của mỗi param bằng cách gọi `result.useFirstErrorOnly()`.
 
 ```javascript
 var errors = result.array();
@@ -345,10 +373,10 @@ var errors = result.array();
 ```
 
 #### `result.mapped()`
-Returns an object of errors, where the key is the parameter name, and the value is an error object as returned by the error formatter.
+Trả về một đối tượng của các lỗi, mà chính là tên tham số, và giá trị là một đối tượng lỗi như trả về bởi các định dạng lỗi.
 
-Because of historical reasons, by default this method will return the last error of each parameter.<br>
-You can change this behavior by invoking `result.useFirstErrorOnly()`, so the first error is returned instead.
+Vì lý do lịch sử, theo mặc định phương pháp này sẽ trở lại các lỗi cuối cùng của mỗi tham số. <br>
+Bạn có thể thay đổi hành vi này bằng cách gọi 'result.useFirstErrorOnly () `, vì vậy các lỗi đầu tiên lại được thay thế.
 
 ```javascript
 var errors = result.mapped();
@@ -369,8 +397,8 @@ var errors = result.mapped();
 ```
 
 #### `result.throw()`
-If there are errors, throws an `Error` object which is decorated with the same API as the validation result object.<br>
-Useful for dealing with the validation errors in the `catch` block of a `try..catch` or promise.
+Nếu có sai sót, ném một 'Error` đối tượng được trang trí với các API tương tự như các đối tượng kết quả xác thực. <br>
+Hữu ích để đối phó với các lỗi xác nhận trong `khối catch` của một 'try..catch` hoặc promise.
 
 ```js
 try {
@@ -389,8 +417,7 @@ While they work, their API is unflexible and sometimes return weird results if c
 Additionally, these methods may be removed in a future version.
 
 #### `req.validationErrors([mapped])`
-Returns synchronous errors in the form of an array, or an object that maps parameter to error in case `mapped` is passed as `true`.<br>
-If there are no errors, the returned value is `false`.
+Trả về lỗi đồng bộ trong các hình thức của một mảng, hoặc một đối tượng mà các bản đồ tham số lỗi trong trường hợp 'mapped' được thông qua như là `true`. <br> Nếu không có lỗi, giá trị trả về là `false`. `false`.
 
 ```js
 var errors = req.validationErrors();
@@ -429,7 +456,7 @@ req.assert('number', '%0 is not divisible by %1').isDivisibleBy(5);
 
 ### Per-validation messages
 
-You can provide an error message for a single validation with `.withMessage()`. This can be chained with the rest of your validation, and if you don't use it for one of the validations then it will fall back to the default.
+Xác nhận đơn giản  với `.withMessage()`. This can be chained with the rest of your validation, and if you don't use it for one of the validations then it will fall back to the default.
 
 ```javascript
 req.assert('email', 'Invalid email')
