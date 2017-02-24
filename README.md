@@ -295,8 +295,47 @@ req.checkBody({
 });
 ```
 
-Bạn cũng có thể xác định vị trí cụ thể thông qua add `in` thông số như hình dưới đây. ==> email trong query
+Ví dụ check với email với isEmail có các thông số là 1 đối tượng :
 
+```
+   req.checkBody({
+        'email': {
+            contains: {
+                options: ["@"],
+                errorMessage: "Chuỗi mẫu cần sử dụng là @."
+            },
+            isEmail: {
+                options: {
+                    allow_display_name: false,
+                    require_display_name: false, // 
+                    allow_utf8_local_part: false,  // không ho phép hiển thị chữ kiểu utf-8 tiếng việt
+                    require_tld: true
+                },
+                errorMessage: 'Đây không phải là email.'
+            },
+            notEmpty: {
+                errorMessage: "Email không được rỗng."
+            }
+        }
+    });
+    
+```
+
+Ví dụ check với 1 trường yêu cầu phải là số :
+
+    req.checkBody({
+        'number': {
+            isInt: {
+                options: {
+                    min: 10,
+                    max: 20
+                },
+                errorMessage: "Giá trị truyền nên phải là số nguyên lớn hơn 10 và nhỏ hơn 20."
+            }
+        }
+    });
+
+Bạn cũng có thể xác định vị trí cụ thể thông qua add `in` thông số như hình dưới đây với method check. ==> email trong query
 
 
 ```javascript
@@ -340,6 +379,22 @@ req.checkHeaders(schema);  // will check 'password' in headers but 'email' in qu
 ```
 Các giá trị hiện thời được hỗ trợ  `'body', 'params', 'query', 'headers'`. Nếu bạn đưa vào một in vị trí ko được hỗ trợ quá trình cho tham số hiện tại được bỏ qua.
 
+
+Để nhận kết quả mình thường làm ngay phía dưới định nghĩa nhận kết quả và trả về 
+
+   req.getValidationResult().then(function (result) {
+        // nếu có lỗi send lỗi
+        var errors = result.array();
+        if (!result.isEmpty()) {
+            var errors = result.array();
+            res.status(400).send(errors);
+        } else {
+            // nếu khác tiếp tục request 
+            next();
+        }
+    });
+
+Vui lòng xem tiếp cách khác.
 
 ## Validation result
 
