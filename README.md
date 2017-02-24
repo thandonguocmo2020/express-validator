@@ -248,7 +248,23 @@ Bạn có thể check nhiều thứ cùng 1 lúc sử dụng sơ đồ đơn gi�
 
 Bạn có thể thông qua tin nhắn mỗi validator error với key `errorMessage` .
 optional Validator có thể được chuyển qua key `options` như là một mảng khi các value khác nhau là required, 
-hoặc là một giá trị null .
+
+ví dụ với validator hàm contains nó có 1 đối số
+
+Khi bạn viết với dạng checkBody sẽ như vậy :
+
+req.checkBody('email', 'Chuỗi mẫu không tồn tại').contains("@"); // nó bắt buộc cần ký tự @.
+
+Nếu viết dưới dạng sơ đồ bạn cần thêm nó vào options là một mảng các value khác nhau cần thiết.
+
+'email': {
+            contains: {
+                options: ["@"],
+                errorMessage: "Email không hợp lệ"
+         }
+            
+
+Hoặc là ko cần thiết sử dụng options nếu đối số ko có.
 
 ```javascript
 req.checkBody({
